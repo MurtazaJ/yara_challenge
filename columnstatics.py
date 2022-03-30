@@ -1,6 +1,6 @@
 class ColumnStatics:
     
-    def __init__(self, average, min, max, std):
+    def __init__(self, average,std, min, max):
     
         self.average = average
         self.min = min
