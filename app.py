@@ -38,10 +38,14 @@ if uploaded_file is not None:
     st.write('file loading sucessful...')
     df = df.drop(['Unnamed: 0', 'utctimestamp'], axis = 1)
 
+
+
+
     # Viewing the desired columns
     selected_columns = df.columns.tolist()  
     st.subheader('Select the features to view the dataframe')
     selected_columns_st = st.multiselect('', selected_columns,selected_columns)
+
     if not len(selected_columns_st) == 0:
         df_altered = df[(selected_columns_st)]
         st.dataframe(df_altered.head(5))
@@ -87,40 +91,134 @@ if uploaded_file is not None:
         buf = BytesIO()
         fig.savefig(buf, format="png")
         st.image(buf)
-
+        st.title('')
+        st.title('')
+        def min_max_values(col):
+            top = df[col].idxmax()
+            top_obs = pd.DataFrame(df.loc[top])
+            
+            bottom = df[col].idxmin()
+            bot_obs = pd.DataFrame(df.loc[bottom])
+            
+            min_max_obs = pd.concat([top_obs, bot_obs], axis = 1)
         
+            return min_max_obs
+        st.subheader(f'The Min and Max values for {x_axis} are as under:')    
+        min_max = min_max_values(x_axis)
+        st.write(min_max)
     
     
     
     else:
         st.write('choose the Feature to view')
-    st.title('--------------------------------------------------------------------------------')
+    
+    col41, col42, col43, col44, col45, col46 = st.columns(6)
+    
+    
+    
+    if col42.button('close'):
+        col41.button('show heat map')
+    elif col41.button('show heat map'):
+        fig3, ax = plt.subplots()
+        heat_map = sns.heatmap(df.corr(),
+            cmap = 'viridis', vmax = 1.0, vmin = -1.0, linewidths = 0.1,
+            annot = True, square = True )
+    
+        st.pyplot(fig3)
+     
 
-    st.write('📢Looking at scatter plots and box plot we find out that for column ammonia all the values below 300 must be trimmed')
-    #remove outliers in ammonia
-    remove_outlier_ammonia = df[df['Ammonia tons/hr']<300].index
-    df.drop(remove_outlier_ammonia, inplace=True, axis = 0)
+
+
+
+   
+    st.write('Total Nan Values', df.isna().sum())
+
+    st.write('Q1 = df.quantile(0.25)')
+    st.write('Q3 = df.quantile(0.75)')
+    st.write('IQR = Q3 - Q1')
+    Q1 = df.quantile(0.25)
+    Q3 = df.quantile(0.75)
+    IQR = Q3 - Q1
+
+    st.write('Identifying Outliers with Interquartile Range (IQR)')
+    iqr_values = (df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))
+    st.write('Total number of outliers in each columns are \n', iqr_values[iqr_values == True].sum())
+
     
-    st.write('📢Looking at scatter plots and box plot we find out that for column Humidity all the values below 42 must be trimmed')
-    # Remove outlier in Humidity
-    remove_outlier_humidity = df[df['Humidity %']<42].index
-    df.drop(remove_outlier_humidity, inplace=True, axis = 0)
+    # Outliers in Column Ammonia tons/hr
     
-    st.write('📢Looking at scatter plots and box plot we find out that for column Humidity all the values below 0 must be trimmed')
-    #Remove outlier in Steam
-    remove_outlier_steam = df[df['Steam tons/hr']<0].index
-    df.drop(remove_outlier_steam, inplace=True, axis = 0)
-    
-    st.write('📢Looking at scatter plots and box plot we find out that for column Humidity all the values below 3906 must be trimmed')
-    # Remove outlier of speed
-    remove_outlier_speed= df[df['Speed of compressor rpms']<3906].index
-    df.drop(remove_outlier_speed, inplace=True, axis = 0)
+    ammonia_outlier = iqr_values.index[iqr_values['Ammonia tons/hr'] == True].tolist()
+    df.at[ammonia_outlier, 'Ammonia tons/hr'] = None
+
+    # Outliers in Column Steam tons/hr
+
+    steam_outlier = iqr_values.index[iqr_values['Steam tons/hr'] == True].tolist()
+    df.at[steam_outlier, 'Steam tons/hr'] = None
+
+    # Outliers in Column Humidity %
+    humidity_outlier = iqr_values.index[iqr_values['Humidity %'] == True].tolist()
+    df.at[humidity_outlier, 'Humidity %'] = None
+
+    # Outliers in Column Pressure in mbara
+    pressure_outlier = iqr_values.index[iqr_values['Pressure in mbara'] == True].tolist()
+    df.at[pressure_outlier, 'Pressure in mbara'] = None
+
+    # Outliers in Column Temp °C
+    temp_outlier = iqr_values.index[iqr_values['Temp °C'] == True].tolist()
+    df.at[temp_outlier, 'Temp °C'] = None
+
+    # Outliers in Column Speed of compressor rpms
+    speed_outlier = iqr_values.index[iqr_values['Speed of compressor rpms'] == True].tolist()
+    df.at[speed_outlier, 'Speed of compressor rpms'] = None
+
+    st.write('Total None Values after changing None to the outliers \n', df.isnull().sum())
+
 
     st.write('📢 Shape of the Dateframe',df.shape)
 
+    def delete_outliers(df,x_percent):
+        if x_percent != 0:
+            trim = int((x_percent) * (df.shape[0]) / 100.0)
+            df = df[trim:-trim]
+            return df
+        else:
+            return df
+    col71,col72 = st.columns(2)
+    number = col71.slider('choose percentage to trim', 0 , 50, 10)
+    df = delete_outliers(df, number)
+    st.write(f'The shape of Dataframe after trimming  {number}% is', df.shape)
+
+    def impute_missing_values(df, method):
+        if method == 'mean':
+            df = df.fillna(df.mean())
+        elif method == 'median':
+            df = df.fillna(df.median())
+        elif method == 'mode':
+            df = df.fillna(df.median())
+        else:
+            method == 'interpolate'
+            df = df.interpolate()
+        return df
+
+    col81, col82,col83 = st.columns(3)
+    option = col81.selectbox('How would you like to be impute?',('Mean', 'Median', 'Mode', 'interpolate'))
+   
+    df = impute_missing_values(df, option) 
+    st.write('Total None Values after imputing',df.isna().sum())
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    st.title('--------------------------------------------------------------------------------')
     selected_columns_2 = df.columns.tolist()  
     st.subheader('Select the features to view the dataframe')
     selected_columns_st_2 = st.multiselect('', selected_columns_2)
@@ -143,6 +241,24 @@ if uploaded_file is not None:
         st.write(fig2)
         st.title('')
 
+        
+        st.header('Baseline Graphs')
+        df_describe = df.describe()
+        df_describe = df_describe.drop(['count'], axis = 0)
+        # col91, col92, col93, col94, col95, col96, col97 = st.columns(7)
+        # t25 = col91.number_input('25%',0 )
+        # t50 = col92.number_input('50%',0 )
+        # t75 = col93.number_input('75%',0 )
+        # max = col94.number_input('max',0 )
+        # mean = col95.number_input('mean',0 )
+        # min = col96.number_input('min',0 )
+        # std = col97.number_input('std',0 )
+        # pd.dataframe 
+        selected_columns_st_3 = df_describe.columns.tolist() 
+        selected_columns_3 = st.multiselect('', selected_columns_st_3, key='baselinegraphs')
+        st.dataframe(df_describe[selected_columns_3])
+        st.line_chart(data = df_describe[selected_columns_3])
+       
 
 
         # Subheader for defining the height and width of the graphs
@@ -170,5 +286,6 @@ if uploaded_file is not None:
         fig.savefig(buf, format="png")
         st.image(buf)
       
+        
     else:
         st.write('choose the Feature to view')

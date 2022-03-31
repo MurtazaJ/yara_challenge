@@ -81,7 +81,7 @@ class DataCleaning:
         if method == 'mean':
             cls.df = cls.df.fillna(cls.df.mean())
         elif method == 'median':
-            cls.df = cls.df.fillna(cls.df.median())
+            cls.df = cls.df.fillna(cls.df.mode())
         elif method == 'mode':
             cls.df = cls.df.fillna(cls.df.median())
         elif method == 'interpolate':
@@ -183,14 +183,14 @@ class DataCleaning:
 
 data_cleaner = DataCleaning()
 data_cleaner.read_data('data_challenge.csv')
-# data_cleaner.replace_outliers_none()
-# data_cleaner.delete_outliers(10)
-# print(data_cleaner.df.shape)
-data_cleaner.impute_missing_values('mean')
-# print(data_cleaner.df.isna().sum())
-# data_cleaner.calculate_statics()
+# # data_cleaner.replace_outliers_none()
+# # data_cleaner.delete_outliers(10)
+# # print(data_cleaner.df.shape)
+# data_cleaner.impute_missing_values('mean')
+# # print(data_cleaner.df.isna().sum())
+# # data_cleaner.calculate_statics()
 external_baseline = DataCleaning.read_baseline({'Ammonia tons/hr': {'average': 5, 'std': 0.2, 'min': 6, 'max': 12}})
 baseline = DataCleaning.calculate_internal_baseline()
-# print(baseline)
+print(baseline)
 DataCleaning.compare_to_baseline(baseline, external_baseline)
 
